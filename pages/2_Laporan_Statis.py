@@ -103,7 +103,7 @@ st.markdown("""
 """)
 
 # --- Analisis 4: Peta Choropleth ---
-st.header("3. Peta Choropleth dengan Detail per Provinsi")
+st.header("4. Peta Choropleth dengan Detail per Provinsi")
 provinsi_counts = df_darat.groupby('provinsi').size().reset_index(name='jumlah_gempa')
 idx_max_mag = df_darat.groupby('provinsi')['mag'].idxmax()
 max_mag_events = df_darat.loc[idx_max_mag, ['provinsi', 'mag', 'time']].copy()
