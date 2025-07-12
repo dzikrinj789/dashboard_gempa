@@ -1,5 +1,3 @@
-# File: pages/2_Informasi_Gempa.py
-
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
@@ -23,6 +21,7 @@ df_darat, gdf_provinsi = load_data()
 st.title("ℹ️ Laporan Analisis Statis Gempa Darat (2004-2024)")
 st.info("Halaman ini menampilkan analisis dari keseluruhan data untuk memberikan gambaran umum tanpa filter.")
 
+# --- Analisis 1: Pareto ---
 st.header("1. Analisis Pareto: Konsentrasi Gempa per Provinsi")
 provinsi_counts = df_darat['provinsi'].value_counts()
 df_pareto = pd.DataFrame({'jumlah': provinsi_counts})
@@ -39,6 +38,7 @@ ax2_pareto.set_ylabel("Persentase Kumulatif")
 fig_pareto.tight_layout()
 st.pyplot(fig_pareto)
 
+# --- Analisis 2: Distribusi ---
 st.header("2. Analisis Distribusi Karakteristik Gempa")
 fig_dist, axes_dist = plt.subplots(1, 3, figsize=(18, 5))
 sns.set_style("whitegrid")
@@ -56,6 +56,7 @@ axes_dist[2].set_xlabel('Kedalaman (km)')
 fig_dist.tight_layout()
 st.pyplot(fig_dist)
 
+# --- Analisis 3: Peta Choropleth ---
 st.header("3. Peta Choropleth dengan Detail per Provinsi")
 provinsi_counts = df_darat.groupby('provinsi').size().reset_index(name='jumlah_gempa')
 idx_max_mag = df_darat.groupby('provinsi')['mag'].idxmax()
@@ -85,3 +86,49 @@ tooltip = folium.features.GeoJsonTooltip(
 folium.GeoJson(peta_data, style_function=style_function, tooltip=tooltip).add_to(m_static)
 folium.LayerControl().add_to(m_static)
 st_folium(m_static, use_container_width=True, height=500, key="map_static_detail")
+
+# ================== BAGIAN BARU ==================
+st.divider()
+st.header("4. Analisis Korelasi Magnitudo dan Kedalaman")
+
+col1, col2 = st.columns([2, 1]) # Buat 2 kolom dengan rasio 2:1
+
+with col1:
+    st.subheader("Scatter Plot Magnitudo vs Kedalaman")
+    # Menggunakan regplot untuk melihat garis tren
+    fig_corr, ax_corr = plt.subplots(figsize=(10, 6))
+    sns.regplot(
+        data=df_darat[df_darat['depth'] <= 300], # Fokus pada kedalaman < 300km agar lebih jelas
+        x='depth', 
+        y='mag',
+        scatter_kws={'alpha':0.2}, # Buat titik transparan untuk melihat kepadatan
+        line_kws={'color':'red'},
+        ax=ax_corr
+    )
+    ax_corr.set_xlabel("Kedalaman (km)")
+    ax_corr.set_ylabel("Magnitudo")
+    ax_corr.set_title("Hubungan Sebaran Magnitudo dan Kedalaman")
+    st.pyplot(fig_corr)
+
+with col2:
+    st.subheader("Matriks Korelasi")
+    # Pilih hanya kolom numerik yang relevan
+    numeric_data = df_darat[['mag', 'depth']]
+    correlation_matrix = numeric_data.corr(method='pearson')
+    
+    fig_heatmap, ax_heatmap = plt.subplots(figsize=(6, 5))
+    sns.heatmap(
+        correlation_matrix, 
+        annot=True, # Tampilkan angka korelasi
+        cmap='coolwarm', 
+        fmt=".2f",
+        ax=ax_heatmap
+    )
+    ax_heatmap.set_title("Korelasi Pearson")
+    st.pyplot(fig_heatmap)
+
+st.markdown("""
+**Interpretasi:**
+- **Scatter Plot**: Menunjukkan bahwa gempa darat terkonsentrasi pada kedalaman dangkal (< 100 km) di semua rentang magnitudo. Garis tren merah yang sedikit menurun mengindikasikan adanya hubungan negatif yang sangat lemah.
+- **Heatmap Korelasi**: Nilai korelasi antara `mag` dan `depth` adalah **negatif dan mendekati nol**. Ini mengonfirmasi secara statistik bahwa tidak ada hubungan linear yang kuat antara kedalaman dan kekuatan gempa darat. Namun, nilai negatif yang kecil tersebut sejalan dengan kecenderungan bahwa gempa yang lebih merusak (magnitudo besar) lebih sering terjadi pada kedalaman yang lebih dangkal.
+""")
