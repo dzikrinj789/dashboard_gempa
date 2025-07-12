@@ -27,7 +27,7 @@ def load_data():
 
 df_darat, gdf_provinsi = load_data()
 
-st.title("🌋 Dasbor Interaktif Prediksi Risiko Gempa")
+st.title("🌋 Dasbor Interaktif Kejadian Gempa di Indonesia")
 st.sidebar.header("Filter Dasbor")
 min_date = df_darat['time'].min().date()
 max_date = df_darat['time'].max().date()
