@@ -56,40 +56,9 @@ axes_dist[2].set_xlabel('Kedalaman (km)')
 fig_dist.tight_layout()
 st.pyplot(fig_dist)
 
-# --- Analisis 3: Peta Choropleth ---
-st.header("3. Peta Choropleth dengan Detail per Provinsi")
-provinsi_counts = df_darat.groupby('provinsi').size().reset_index(name='jumlah_gempa')
-idx_max_mag = df_darat.groupby('provinsi')['mag'].idxmax()
-max_mag_events = df_darat.loc[idx_max_mag, ['provinsi', 'mag', 'time']].copy()
-max_mag_events['tahun_mag_maks'] = max_mag_events['time'].dt.year
-max_mag_events.rename(columns={'mag': 'magnitudo_maks'}, inplace=True)
-provinsi_stats = pd.merge(provinsi_counts, max_mag_events[['provinsi', 'magnitudo_maks', 'tahun_mag_maks']], on='provinsi', how='left')
-prov_col_name = next((col for col in ['PROVINSI', 'NAMOBJ'] if col in gdf_provinsi.columns), None)
-peta_data = gdf_provinsi.merge(provinsi_stats, left_on=prov_col_name, right_on='provinsi', how='left')
-peta_data['jumlah_gempa'] = peta_data['jumlah_gempa'].fillna(0).astype(int)
-peta_data['magnitudo_maks'] = peta_data['magnitudo_maks'].fillna(0)
-peta_data['tahun_mag_maks'] = peta_data['tahun_mag_maks'].fillna('N/A')
-m_static = folium.Map(location=[-2.5, 118], zoom_start=5, tiles='CartoDB positron')
-folium.Choropleth(
-    geo_data=peta_data, name='choropleth', data=peta_data,
-    columns=['provinsi', 'jumlah_gempa'], key_on=f'feature.properties.{prov_col_name}',
-    fill_color='YlOrRd', fill_opacity=0.7, line_opacity=0.2,
-    legend_name='Jumlah Total Gempa Darat'
-).add_to(m_static)
-style_function = lambda x: {'fillColor': 'transparent', 'color': 'transparent', 'weight': 0}
-tooltip = folium.features.GeoJsonTooltip(
-    fields=['provinsi', 'jumlah_gempa', 'magnitudo_maks', 'tahun_mag_maks'],
-    aliases=['Provinsi:', 'Jumlah Gempa:', 'Magnitudo Tertinggi:', 'Tahun Magnitudo Tertinggi:'],
-    style=("background-color: white; color: #333333; font-family: arial; font-size: 12px; padding: 10px;"),
-    localize=True
-)
-folium.GeoJson(peta_data, style_function=style_function, tooltip=tooltip).add_to(m_static)
-folium.LayerControl().add_to(m_static)
-st_folium(m_static, use_container_width=True, height=500, key="map_static_detail")
-
-# ================== BAGIAN BARU ==================
+# --- Analisis 3: Analisis Korelasi Magnitudo dan Kedalaman ---
 st.divider()
-st.header("4. Analisis Korelasi Magnitudo dan Kedalaman")
+st.header("3. Analisis Korelasi Magnitudo dan Kedalaman")
 
 col1, col2 = st.columns([2, 1]) # Buat 2 kolom dengan rasio 2:1
 
@@ -132,3 +101,34 @@ st.markdown("""
 - **Scatter Plot**: Menunjukkan bahwa gempa darat terkonsentrasi pada kedalaman dangkal (< 100 km) di semua rentang magnitudo. Garis tren merah yang sedikit menurun mengindikasikan adanya hubungan negatif yang sangat lemah.
 - **Heatmap Korelasi**: Nilai korelasi antara `mag` dan `depth` adalah **negatif dan mendekati nol**. Ini mengonfirmasi secara statistik bahwa tidak ada hubungan linear yang kuat antara kedalaman dan kekuatan gempa darat. Namun, nilai negatif yang kecil tersebut sejalan dengan kecenderungan bahwa gempa yang lebih merusak (magnitudo besar) lebih sering terjadi pada kedalaman yang lebih dangkal.
 """)
+
+# --- Analisis 4: Peta Choropleth ---
+st.header("3. Peta Choropleth dengan Detail per Provinsi")
+provinsi_counts = df_darat.groupby('provinsi').size().reset_index(name='jumlah_gempa')
+idx_max_mag = df_darat.groupby('provinsi')['mag'].idxmax()
+max_mag_events = df_darat.loc[idx_max_mag, ['provinsi', 'mag', 'time']].copy()
+max_mag_events['tahun_mag_maks'] = max_mag_events['time'].dt.year
+max_mag_events.rename(columns={'mag': 'magnitudo_maks'}, inplace=True)
+provinsi_stats = pd.merge(provinsi_counts, max_mag_events[['provinsi', 'magnitudo_maks', 'tahun_mag_maks']], on='provinsi', how='left')
+prov_col_name = next((col for col in ['PROVINSI', 'NAMOBJ'] if col in gdf_provinsi.columns), None)
+peta_data = gdf_provinsi.merge(provinsi_stats, left_on=prov_col_name, right_on='provinsi', how='left')
+peta_data['jumlah_gempa'] = peta_data['jumlah_gempa'].fillna(0).astype(int)
+peta_data['magnitudo_maks'] = peta_data['magnitudo_maks'].fillna(0)
+peta_data['tahun_mag_maks'] = peta_data['tahun_mag_maks'].fillna('N/A')
+m_static = folium.Map(location=[-2.5, 118], zoom_start=5, tiles='CartoDB positron')
+folium.Choropleth(
+    geo_data=peta_data, name='choropleth', data=peta_data,
+    columns=['provinsi', 'jumlah_gempa'], key_on=f'feature.properties.{prov_col_name}',
+    fill_color='YlOrRd', fill_opacity=0.7, line_opacity=0.2,
+    legend_name='Jumlah Total Gempa Darat'
+).add_to(m_static)
+style_function = lambda x: {'fillColor': 'transparent', 'color': 'transparent', 'weight': 0}
+tooltip = folium.features.GeoJsonTooltip(
+    fields=['provinsi', 'jumlah_gempa', 'magnitudo_maks', 'tahun_mag_maks'],
+    aliases=['Provinsi:', 'Jumlah Gempa:', 'Magnitudo Tertinggi:', 'Tahun Magnitudo Tertinggi:'],
+    style=("background-color: white; color: #333333; font-family: arial; font-size: 12px; padding: 10px;"),
+    localize=True
+)
+folium.GeoJson(peta_data, style_function=style_function, tooltip=tooltip).add_to(m_static)
+folium.LayerControl().add_to(m_static)
+st_folium(m_static, use_container_width=True, height=500, key="map_static_detail")
